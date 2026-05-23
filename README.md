@@ -1,21 +1,33 @@
-# PDF Library для GitHub Pages
+# My Books PWA
 
-Готовий шаблон: додаєш PDF у `books/`, робиш push — GitHub Actions сам генерує красивий сайт.
+Готовий шаблон PDF-бібліотеки для GitHub Pages.
 
-## Швидкий старт
+## Як додавати книжки
 
-1. Створи новий репозиторій на GitHub.
-2. Розпакуй цей архів у корінь репозиторію.
-3. Додай PDF-файли в папку `books/`.
-4. Зроби commit/push у `main`.
-5. Увімкни GitHub Pages: `Settings → Pages → Source → GitHub Actions`.
+1. Додай PDF-файли у папку `books/`.
+2. Зроби `Commit changes`.
+3. GitHub Actions автоматично згенерує `data/books.json`, обкладинки з правої половини першої сторінки PDF і опублікує сайт.
+4. Дочекайся зеленої галочки у `Actions → Build and deploy PDF library`.
+5. Відкрий сайт GitHub Pages.
+
+## Важливо
+
+- Кириличні назви PDF підтримуються.
+- Краще не використовувати в назвах файлів символи `#`, `?`, `%`.
+- Прогрес читання зберігається локально в браузері користувача через `localStorage`.
+- Додавання нових книжок не стирає локальний прогрес, якщо старі файли не перейменовувати.
+
+## PWA
+
+Сайт має `manifest.webmanifest`, `sw.js`, іконки та iOS meta-теги. На Android має з'являтися кнопка встановлення. На iPhone: Safari → Поділитися → На початковий екран.
 
 ## Локальна перевірка
 
 ```bash
 pip install -r requirements.txt
-python library_builder_onefile.py --title "Моя PDF-бібліотека"
+python build_library.py --out dist --title "Моя PDF-бібліотека"
+cd dist
 python -m http.server 8000
 ```
 
-Кириличні назви PDF підтримуються. Обкладинка береться з правої половини першої сторінки.
+Потім відкрити: `http://localhost:8000`.
