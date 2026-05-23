@@ -21,12 +21,12 @@ def build_books():
         while ident in used:
             ident=f'{base}-{i}'; i+=1
         used.add(ident)
-        books.append({'id':ident,'title':title,'file':'books/'+pdf.name,'author':'Невідомий автор','category':'PDF','tags':[]})
+        books.append({'id':ident,'title':title,'file':'books/'+pdf.name,'author':'','category':'PDF','tags':[]})
     return books
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--title',default='Моя PDF-бібліотека'); args=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument('--title', default='Моя PDF-бібліотека'); args=ap.parse_args()
     data=json.dumps(build_books(),ensure_ascii=False,separators=(',',':')).replace('</','<\\/')
-    out=TEMPLATE.read_text(encoding='utf-8').replace('__TITLE__',html.escape(args.title)).replace('__BOOKS__',data)
-    OUT.write_text(out,encoding='utf-8')
+    html_text=TEMPLATE.read_text(encoding='utf-8').replace('__TITLE__',html.escape(args.title)).replace('__BOOKS__',data)
+    OUT.write_text(html_text,encoding='utf-8')
     print('Generated index.html')
 if __name__=='__main__': main()
