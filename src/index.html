@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Мої книги" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Моя PDF-бібліотека</title>
+</head>
+<body>
+  <div class="app">
+    <header class="hero glass">
+      <div>
+        <div class="eyebrow">PDF Library · PWA</div>
+        <h1 id="appTitle">Моя PDF-бібліотека</h1>
+        <p class="lead">Додавай PDF у папку <b>books</b> — GitHub Actions автоматично оновить каталог. Прогрес читання зберігається локально на пристрої.</p>
+      </div>
+      <div class="stats">
+        <div><b id="totalBooks">0</b><span>книжок</span></div>
+        <div><b id="readBooks">0</b><span>прочитано</span></div>
+        <div><b id="readingBooks">0</b><span>читаю</span></div>
+      </div>
+    </header>
+
+    <section id="installPanel" class="installPanel glass hidden">
+      <div><b>Встановити як застосунок</b><p id="installText">Можна додати бібліотеку на головний екран.</p></div>
+      <button id="installBtn" class="primary">Встановити</button>
+      <button id="closeInstall">×</button>
+    </section>
+
+    <section class="toolbar glass">
+      <input id="search" type="search" placeholder="Пошук книги…" />
+      <select id="filter">
+        <option value="all">Усі</option>
+        <option value="read">Прочитані</option>
+        <option value="reading">Читаю</option>
+        <option value="unread">Не прочитані</option>
+      </select>
+      <button id="exportProgress">Експорт</button>
+      <label class="buttonLike">Імпорт<input id="importProgress" type="file" accept="application/json" hidden /></label>
+    </section>
+
+    <main id="library" class="library"></main>
+  </div>
+
+  <section id="reader" class="reader" aria-hidden="true">
+    <div class="readerTop">
+      <button id="closeReader">← Бібліотека</button>
+      <div class="readerTitle"><b id="readerBookTitle">Книжка</b><span id="pageInfo">Сторінка —</span></div>
+      <button id="markRead" class="primary">Прочитано</button>
+    </div>
+    <div class="mobileHint">Гортай свайпом або натискай краї сторінки</div>
+    <div class="readerStage">
+      <button class="tapZone left" id="tapPrev" aria-label="Попередня сторінка"></button>
+      <div id="pageWrap" class="pageWrap"><canvas id="pdfCanvas"></canvas></div>
+      <button class="tapZone right" id="tapNext" aria-label="Наступна сторінка"></button>
+    </div>
+    <div class="readerBottom">
+      <button id="prevPage">←</button>
+      <input id="pageSlider" type="range" min="1" max="1" value="1" />
+      <button id="nextPage">→</button>
+    </div>
+  </section>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
