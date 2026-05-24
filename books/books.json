@@ -1,0 +1,11 @@
+{
+  "books": [
+    {
+      "id": "sample-book",
+      "title": "Приклад книги",
+      "url": "books/sample.pdf",
+      "cover": null
+    }
+  ],
+  "_comment": "Додайте свої PDF-файли у папку books/ та оновіть цей список"
+}
