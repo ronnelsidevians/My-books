@@ -1,11 +1,287 @@
-{
-  "books": [
-    {
-      "id": "sample-book",
-      "title": "Приклад книги",
-      "url": "books/sample.pdf",
-      "cover": null
-    }
-  ],
-  "_comment": "Додайте свої PDF-файли у папку books/ та оновіть цей список"
+/* ============================================
+   ОСНОВНІ СТИЛІ ТА АДАПТИВНІСТЬ
+   ============================================ */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+.desktop-only { display: flex; }
+.mobile-only { display: none; }
+
+@media (max-width: 768px) {
+  .desktop-only { display: none !important; }
+  .mobile-only { display: flex !important; }
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--header-bg);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.app-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  transform: scale(1.05);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+.panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  max-width: 90vw;
+  height: 100vh;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  z-index: 1000;
+  padding: 1.5rem;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+}
+
+.panel.hidden {
+  transform: translateX(100%);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.panel-header h3 {
+  font-size: 1.2rem;
+  color: var(--text-primary);
+}
+
+.close-panel {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.theme-option {
+  padding: 1rem;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.theme-option:hover {
+  border-color: var(--accent);
+  transform: translateX(5px);
+}
+
+.theme-option.active {
+  border-color: var(--accent);
+  background: var(--bg-hover);
+}
+
+.library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .library-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .library-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+}
+
+.book-card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.book-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px var(--shadow);
+}
+
+.book-cover {
+  width: 100%;
+  aspect-ratio: 3/4;
+  background: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-cover-placeholder {
+  font-size: 3rem;
+  opacity: 0.3;
+}
+
+.read-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: var(--success);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  z-index: 2;
+}
+
+.reading-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255,255,255,0.2);
+}
+
+.reading-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+.book-info {
+  padding: 1rem;
+}
+
+.book-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-pages {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+#empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+#empty-state h2 {
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+#empty-state code {
+  background: var(--bg-card);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+}
+
+.hidden { display: none !important; }
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary);
+  grid-column: 1 / -1;
 }
