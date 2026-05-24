@@ -1,126 +1,348 @@
-/* ============================================
-   7 ТЕМ ОФОРМЛЕННЯ
-   ============================================ */
+const Reader = {
+  pdfDoc: null,
+  currentPage: 1,
+  totalPages: 0,
+  scale: 1.5,
+  bookId: '',
+  bookUrl: '',
+  bookTitle: '',
+  isMobile: window.innerWidth <= 768,
+  uiVisible: true,
 
-:root {
-  --transition-speed: 0.3s;
-}
+  async init() {
+    const params = new URLSearchParams(window.location.search);
+    this.bookId = params.get('book') || 'unknown';
+    this.bookUrl = params.get('url') || '';
+    this.bookTitle = params.get('title') || 'Книга';
 
-[data-theme="dark"] {
-  --bg-primary: #1a1a2e;
-  --bg-secondary: #16213e;
-  --bg-card: #0f3460;
-  --bg-hover: #1a4a7a;
-  --text-primary: #eaeaea;
-  --text-secondary: #a0a0a0;
-  --accent: #e94560;
-  --accent-hover: #ff6b6b;
-  --border: #2a2a4a;
-  --shadow: rgba(0, 0, 0, 0.5);
-  --success: #4ecca3;
-  --header-bg: #16213e;
-  --reader-bg: #1a1a2e;
-}
+    if (!this.bookUrl) {
+      alert('Помилка: не вказано URL книги');
+      window.location.href = 'index.html';
+      return;
+    }
 
-[data-theme="light"] {
-  --bg-primary: #f5f5f5;
-  --bg-secondary: #ffffff;
-  --bg-card: #ffffff;
-  --bg-hover: #e8e8e8;
-  --text-primary: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --accent: #3498db;
-  --accent-hover: #2980b9;
-  --border: #ddd;
-  --shadow: rgba(0, 0, 0, 0.1);
-  --success: #27ae60;
-  --header-bg: #ffffff;
-  --reader-bg: #fafafa;
-}
+    document.getElementById('book-title').textContent = this.bookTitle;
+    document.getElementById('mobile-title').textContent = this.bookTitle;
 
-[data-theme="warm"] {
-  --bg-primary: #2c1810;
-  --bg-secondary: #3d2418;
-  --bg-card: #4a2c1a;
-  --bg-hover: #5d3a22;
-  --text-primary: #f4e4c1;
-  --text-secondary: #c9b896;
-  --accent: #e67e22;
-  --accent-hover: #f39c12;
-  --border: #5d3a22;
-  --shadow: rgba(0, 0, 0, 0.4);
-  --success: #2ecc71;
-  --header-bg: #3d2418;
-  --reader-bg: #2c1810;
-}
+    const progress = Storage.getProgress(this.bookId);
+    this.currentPage = progress.currentPage || 1;
 
-[data-theme="mint"] {
-  --bg-primary: #1a3a3a;
-  --bg-secondary: #234b4b;
-  --bg-card: #2d5a5a;
-  --bg-hover: #3a6e6e;
-  --text-primary: #e0f2f1;
-  --text-secondary: #80cbc4;
-  --accent: #26a69a;
-  --accent-hover: #4db6ac;
-  --border: #3a6e6e;
-  --shadow: rgba(0, 0, 0, 0.3);
-  --success: #66bb6a;
-  --header-bg: #234b4b;
-  --reader-bg: #1a3a3a;
-}
+    await this.loadPDF();
+    this.setupEvents();
+    this.setupTouchEvents();
 
-[data-theme="sage"] {
-  --bg-primary: #f5f5f0;
-  --bg-secondary: #e8e8e0;
-  --bg-card: #ffffff;
-  --bg-hover: #d8d8d0;
-  --text-primary: #2d3436;
-  --text-secondary: #636e72;
-  --accent: #7d8471;
-  --accent-hover: #8b9576;
-  --border: #c8c8be;
-  --shadow: rgba(0, 0, 0, 0.08);
-  --success: #55efc4;
-  --header-bg: #e8e8e0;
-  --reader-bg: #f5f5f0;
-}
+    const settings = Storage.getSettings();
+    if (settings.theme) {
+      document.body.dataset.theme = settings.theme;
+    }
 
-[data-theme="blue"] {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-card: #334155;
-  --bg-hover: #475569;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
-  --border: #475569;
-  --shadow: rgba(0, 0, 0, 0.4);
-  --success: #34d399;
-  --header-bg: #1e293b;
-  --reader-bg: #0f172a;
-}
+    if (this.isMobile) {
+      this.enterFullscreen();
+    }
+  },
 
-[data-theme="newspaper"] {
-  --bg-primary: #f4f1ea;
-  --bg-secondary: #e8e4d9;
-  --bg-card: #fffef8;
-  --bg-hover: #ddd8cc;
-  --text-primary: #2c241b;
-  --text-secondary: #5c5145;
-  --accent: #8b4513;
-  --accent-hover: #a0522d;
-  --border: #c4bdb0;
-  --shadow: rgba(0, 0, 0, 0.15);
-  --success: #556b2f;
-  --header-bg: #e8e4d9;
-  --reader-bg: #f4f1ea;
-}
+  async loadPDF() {
+    const canvas = document.getElementById('pdf-canvas');
+    const container = document.querySelector('.reader-container');
 
-* {
-  transition: background-color var(--transition-speed) ease,
-              color var(--transition-speed) ease,
-              border-color var(--transition-speed) ease,
-              box-shadow var(--transition-speed) ease;
-}
+    container.innerHTML = `
+      <div class="loading-container">
+        <div class="spinner"></div>
+        <span>Завантаження книги...</span>
+      </div>
+    `;
+
+    try {
+      const loadingTask = pdfjsLib.getDocument(this.bookUrl);
+      this.pdfDoc = await loadingTask.promise;
+      this.totalPages = this.pdfDoc.numPages;
+
+      container.innerHTML = '<canvas id="pdf-canvas"></canvas>';
+
+      if (this.isMobile) {
+        const touchZones = document.createElement('div');
+        touchZones.className = 'touch-zones mobile-only';
+        touchZones.id = 'touch-zones';
+        touchZones.innerHTML = `
+          <div class="touch-zone touch-left" data-action="prev"></div>
+          <div class="touch-zone touch-center" data-action="menu"></div>
+          <div class="touch-zone touch-right" data-action="next"></div>
+        `;
+        container.appendChild(touchZones);
+        this.setupTouchZones();
+      }
+
+      if (this.currentPage > this.totalPages) {
+        this.currentPage = 1;
+      }
+
+      await this.renderPage(this.currentPage);
+      this.updateUI();
+
+    } catch (error) {
+      console.error('Помилка завантаження PDF:', error);
+      container.innerHTML = `
+        <div class="loading-container">
+          <span>❌ Помилка завантаження книги</span>
+          <span style="font-size: 0.9rem; margin-top: 0.5rem;">Перевірте підключення до інтернету</span>
+        </div>
+      `;
+    }
+  },
+
+  async renderPage(pageNum) {
+    if (!this.pdfDoc || pageNum < 1 || pageNum > this.totalPages) return;
+
+    const canvas = document.getElementById('pdf-canvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+
+    try {
+      const page = await this.pdfDoc.getPage(pageNum);
+      const viewport = page.getViewport({ scale: this.scale });
+
+      const isRightSide = pageNum % 2 === 1;
+
+      const halfWidth = Math.floor(viewport.width / 2);
+      canvas.width = halfWidth;
+      canvas.height = viewport.height;
+
+      ctx.fillStyle = getComputedStyle(document.body).getPropertyValue('--reader-bg');
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = viewport.width;
+      tempCanvas.height = viewport.height;
+      const tempCtx = tempCanvas.getContext('2d');
+
+      await page.render({
+        canvasContext: tempCtx,
+        viewport: viewport
+      }).promise;
+
+      const sx = isRightSide ? halfWidth : 0;
+      ctx.drawImage(
+        tempCanvas,
+        sx, 0, halfWidth, viewport.height,
+        0, 0, halfWidth, viewport.height
+      );
+
+      this.currentPage = pageNum;
+      this.updateUI();
+
+      Storage.saveProgress(this.bookId, this.currentPage, this.totalPages);
+
+      if (this.currentPage >= this.totalPages) {
+        Storage.markAsRead(this.bookId, this.totalPages);
+      }
+
+    } catch (error) {
+      console.error('Помилка рендерингу:', error);
+    }
+  },
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.renderPage(this.currentPage + 1);
+    }
+  },
+
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.renderPage(this.currentPage - 1);
+    }
+  },
+
+  updateUI() {
+    const pageIndicator = document.getElementById('page-indicator');
+    const mobileIndicator = document.getElementById('mobile-page-indicator');
+    const progressFill = document.getElementById('progress-fill');
+
+    const text = `${this.currentPage} / ${this.totalPages}`;
+    if (pageIndicator) pageIndicator.textContent = `Сторінка ${text}`;
+    if (mobileIndicator) mobileIndicator.textContent = text;
+
+    if (progressFill) {
+      const percent = this.totalPages > 0 ? (this.currentPage / this.totalPages) * 100 : 0;
+      progressFill.style.width = `${percent}%`;
+    }
+  },
+
+  setupEvents() {
+    document.getElementById('prev-page')?.addEventListener('click', () => this.prevPage());
+    document.getElementById('next-page')?.addEventListener('click', () => this.nextPage());
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') this.prevPage();
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') this.nextPage();
+      if (e.key === 'Escape') this.exitFullscreen();
+    });
+
+    document.getElementById('back-btn')?.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+    document.getElementById('mobile-back')?.addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('fullscreen-btn')?.addEventListener('click', () => {
+      this.toggleFullscreen();
+    });
+
+    document.getElementById('mobile-exit')?.addEventListener('click', () => {
+      this.exitFullscreen();
+    });
+
+    document.getElementById('theme-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this.toggleThemePanel();
+    });
+
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const theme = e.target.dataset.theme;
+        this.setTheme(theme);
+      });
+    });
+
+    document.querySelectorAll('.close-panel').forEach(btn => {
+      btn.addEventListener('click', () => this.closePanels());
+    });
+
+    document.addEventListener('click', (e) => {
+      const panel = document.getElementById('theme-panel');
+      if (panel && !panel.contains(e.target) && !e.target.closest('#theme-btn')) {
+        panel.classList.add('hidden');
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      const wasMobile = this.isMobile;
+      this.isMobile = window.innerWidth <= 768;
+      if (wasMobile !== this.isMobile) {
+        location.reload();
+      }
+    });
+  },
+
+  setupTouchEvents() {
+    if (!this.isMobile) return;
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
+
+      const diffX = touchEndX - touchStartX;
+      const diffY = touchEndY - touchStartY;
+
+      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 50) {
+        if (diffX > 0) {
+          this.prevPage();
+        } else {
+          this.nextPage();
+        }
+      }
+    }, { passive: true });
+  },
+
+  setupTouchZones() {
+    const zones = document.querySelectorAll('.touch-zone');
+
+    zones.forEach(zone => {
+      zone.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const action = zone.dataset.action;
+
+        switch(action) {
+          case 'prev':
+            this.prevPage();
+            break;
+          case 'next':
+            this.nextPage();
+            break;
+          case 'menu':
+            this.toggleMobileUI();
+            break;
+        }
+      });
+    });
+  },
+
+  toggleMobileUI() {
+    this.uiVisible = !this.uiVisible;
+    const topBar = document.getElementById('mobile-top-bar');
+    const bottomBar = document.getElementById('mobile-bottom-bar');
+
+    if (this.uiVisible) {
+      topBar?.classList.remove('hidden');
+      bottomBar?.classList.remove('hidden');
+    } else {
+      topBar?.classList.add('hidden');
+      bottomBar?.classList.add('hidden');
+    }
+  },
+
+  enterFullscreen() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().catch(() => {});
+    } else if (elem.webkitRequestFullscreen) {
+      elem.webkitRequestFullscreen();
+    }
+
+    this.uiVisible = false;
+    document.getElementById('mobile-top-bar')?.classList.add('hidden');
+    document.getElementById('mobile-bottom-bar')?.classList.add('hidden');
+  },
+
+  exitFullscreen() {
+    if (document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    }
+
+    this.uiVisible = true;
+    document.getElementById('mobile-top-bar')?.classList.remove('hidden');
+    document.getElementById('mobile-bottom-bar')?.classList.remove('hidden');
+  },
+
+  toggleFullscreen() {
+    if (document.fullscreenElement) {
+      this.exitFullscreen();
+    } else {
+      this.enterFullscreen();
+    }
+  },
+
+  setTheme(theme) {
+    document.body.dataset.theme = theme;
+    Storage.saveSettings({ theme });
+
+    document.querySelectorAll('.theme-option').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+  },
+
+  toggleThemePanel() {
+    const panel = document.getElementById('theme-panel');
+    panel?.classList.toggle('hidden');
+  },
+
+  closePanels() {
+    document.getElementById('theme-panel')?.classList.add('hidden');
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  Reader.init();
+});
